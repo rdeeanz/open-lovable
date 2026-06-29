@@ -30,6 +30,7 @@ import GithubIcon from "@/components/shared/header/Github/_svg/GithubIcon";
 import ButtonUI from "@/components/ui/shadcn/button"
 import HeaderAuthActions from "@/components/auth/HeaderAuthActions";
 import MaintenanceBanner from "@/components/admin/MaintenanceBanner";
+import { usePublicSiteSettings } from "@/hooks/usePublicSiteSettings";
 
 interface SearchResult {
   url: string;
@@ -54,6 +55,7 @@ export default function HomePage() {
   const [additionalInstructions, setAdditionalInstructions] = useState<string>('');
   const [extendBrandStyles, setExtendBrandStyles] = useState<boolean>(false);
   const router = useRouter();
+  const { settings: siteSettings } = usePublicSiteSettings();
   
   // Simple URL validation
   const validateUrl = (urlString: string) => {
@@ -240,18 +242,20 @@ export default function HomePage() {
               </div>
               <div className="flex flex-wrap items-center justify-end gap-6 sm:gap-8 min-w-0">
                 <HeaderAuthActions />
-                <a
-                  className="contents shrink-0"
-                  href="https://github.com/mendableai/open-lovable"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <ButtonUI variant="tertiary" className="!px-8 !py-6 text-label-small sm:text-label-medium whitespace-nowrap">
-                    <GithubIcon />
-                    <span className="hidden md:inline">Use this Template</span>
-                    <span className="md:hidden">GitHub</span>
-                  </ButtonUI>
-                </a>
+                {siteSettings.showHeaderCta ? (
+                  <a
+                    className="contents shrink-0"
+                    href={siteSettings.headerCtaUrl || "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <ButtonUI variant="tertiary" className="!px-8 !py-6 text-label-small sm:text-label-medium whitespace-nowrap">
+                      <GithubIcon />
+                      <span className="hidden md:inline">{siteSettings.headerCtaText}</span>
+                      <span className="md:hidden">{siteSettings.headerCtaTextMobile}</span>
+                    </ButtonUI>
+                  </a>
+                ) : null}
               </div>
             </div>
           </HeaderWrapper>
@@ -271,13 +275,21 @@ export default function HomePage() {
               <p className="text-center text-body-medium sm:text-body-large px-8 sm:px-16 max-w-2xl mx-auto">
                 Clone brand format or re-imagine any website, in seconds.
               </p>
-              <Link
-                className="bg-black-alpha-4 hover:bg-black-alpha-6 rounded-6 px-8 lg:px-6 text-label-large h-30 lg:h-24 block mt-8 mx-auto w-max gap-4 transition-all"
-                href="#"
-                onClick={(e) => e.preventDefault()}
-              >
-                Powered by Firecrawl.
-              </Link>
+              {siteSettings.showHeroPoweredBy ? (
+                <Link
+                  className="bg-black-alpha-4 hover:bg-black-alpha-6 rounded-6 px-8 lg:px-6 text-label-large h-30 lg:h-24 block mt-8 mx-auto w-max gap-4 transition-all"
+                  href={siteSettings.heroPoweredByUrl || "#"}
+                  onClick={
+                    siteSettings.heroPoweredByUrl === "#"
+                      ? (e) => e.preventDefault()
+                      : undefined
+                  }
+                  target={siteSettings.heroPoweredByUrl === "#" ? undefined : "_blank"}
+                  rel={siteSettings.heroPoweredByUrl === "#" ? undefined : "noreferrer"}
+                >
+                  {siteSettings.heroPoweredByText}
+                </Link>
+              ) : null}
             </div>
           </div>
 

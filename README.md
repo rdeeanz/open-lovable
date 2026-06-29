@@ -65,3 +65,17 @@ Open [http://localhost:3000](http://localhost:3000)
 ## License
 
 MIT
+
+## Deploy to Cloudflare (D1 Free Tier)
+
+See [docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md) for Workers + D1 + R2 deployment.
+
+```bash
+pnpm exec wrangler login
+pnpm exec wrangler d1 create open-lovable-db
+# Update database_id in wrangler.jsonc
+pnpm db:migrate:remote
+cp .dev.vars.example .dev.vars
+pnpm exec wrangler secret bulk .dev.vars
+pnpm deploy:cf
+```

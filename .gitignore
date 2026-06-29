@@ -60,3 +60,12 @@ bun.lockb
 
 # Admin persisted data
 data/*.json
+
+# Uploaded site assets
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Cloudflare
+.open-next/
+.wrangler/
+.dev.vars

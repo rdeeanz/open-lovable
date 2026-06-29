@@ -1,13 +1,24 @@
+"use client";
+
 import Link from "next/link";
+import { usePublicSiteSettings } from "@/hooks/usePublicSiteSettings";
 
 export default function HomeHeroBadge() {
+  const { settings } = usePublicSiteSettings();
+  if (!settings.showHeroBadge) return null;
+
+  const href = settings.heroBadgeUrl || "#";
+  const isPlaceholder = href === "#";
+
   return (
     <Link
       className="p-4 rounded-full flex w-max mx-auto mb-12 lg:mb-16 items-center relative inside-border before:border-border-faint group"
-      href="#"
-      onClick={(e) => e.preventDefault()}
+      href={href}
+      onClick={isPlaceholder ? (e) => e.preventDefault() : undefined}
+      target={isPlaceholder ? undefined : "_blank"}
+      rel={isPlaceholder ? undefined : "noreferrer"}
     >
-      <div className="px-8 text-label-x-small">Website Builder</div>
+      <div className="px-8 text-label-x-small">{settings.heroBadgeText}</div>
 
       <div className="p-1">
         <div className="size-18 bg-accent-black flex-center rounded-full group-hover:bg-heat-100 transition-all group-hover:w-30">

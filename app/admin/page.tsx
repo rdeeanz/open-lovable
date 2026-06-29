@@ -1,6 +1,7 @@
 import AdminShell from "@/components/admin/AdminShell";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { getAdminStats, getSiteSettings } from "@/lib/admin/store";
+import { COLOR_MODE_LABELS, VISUAL_THEME_LABELS } from "@/lib/theme/types";
 
 export default async function AdminDashboardPage() {
   const session = await requireAdminSession();
@@ -31,6 +32,12 @@ export default async function AdminDashboardPage() {
             <Item label="Model Default" value={settings.defaultModel} />
             <Item label="Generation Publik" value={settings.allowPublicGeneration ? "Diizinkan" : "Diblokir"} />
             <Item label="Sandbox Timeout" value={`${settings.sandboxTimeoutMinutes} menit`} />
+            <Item label="Tema Visual" value={VISUAL_THEME_LABELS[settings.visualTheme]} />
+            <Item label="Mode Warna" value={COLOR_MODE_LABELS[settings.colorMode]} />
+            <Item label="Logo" value={settings.showLogo ? (settings.logoUrl || settings.logoText || "Firecrawl bawaan") : "Disembunyikan"} />
+            <Item label="Tombol Header" value={settings.showHeaderCta ? settings.headerCtaText : "Disembunyikan"} />
+            <Item label="Badge Hero" value={settings.showHeroBadge ? settings.heroBadgeText : "Disembunyikan"} />
+            <Item label="Powered By" value={settings.showHeroPoweredBy ? settings.heroPoweredByText : "Disembunyikan"} />
           </dl>
         </section>
       </div>

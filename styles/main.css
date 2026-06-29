@@ -1,5 +1,6 @@
 /* Fire Design System - Must be imported first for color definitions */
 @import "./fire.css";
+@import "./themes/claude.css";
 @import "./components/index.css";
 @import "./inside-border-fix.css";
 

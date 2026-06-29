@@ -95,6 +95,11 @@ export const appConfig = {
   },
   
   // Code Application Configuration
+  previewRecovery: {
+    maxAttempts: 6,
+    initialDelayMs: 2500,
+  },
+
   codeApplication: {
     // Delay after applying code before refreshing iframe (milliseconds)
     defaultRefreshDelay: 2000,

@@ -25,6 +25,10 @@ import {
 } from '@/lib/icons';
 import { motion } from 'framer-motion';
 import CodeApplicationProgress, { type CodeApplicationState } from '@/components/CodeApplicationProgress';
+import {
+  ensureSandboxPreviewReady,
+  type PreviewRecoveryStatus,
+} from '@/lib/client/ensure-sandbox-preview';
 
 interface SandboxData {
   sandboxId: string;
@@ -124,12 +128,22 @@ function AISandboxPage() {
   });
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const sandboxDataRef = useRef<SandboxData | null>(null);
+  const [previewIframeKey, setPreviewIframeKey] = useState(0);
+  useEffect(() => {
+    sandboxDataRef.current = sandboxData;
+  }, [sandboxData]);
+
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const codeDisplayRef = useRef<HTMLDivElement>(null);
   
   const [codeApplicationState, setCodeApplicationState] = useState<CodeApplicationState>({
     stage: null
   });
+  const [previewRecovery, setPreviewRecovery] = useState<{
+    status: PreviewRecoveryStatus;
+    message: string;
+  }>({ status: 'idle', message: '' });
   
   const [generationProgress, setGenerationProgress] = useState<{
     isGenerating: boolean;
@@ -489,15 +503,105 @@ function AISandboxPage() {
     }
   };
 
+
+  const clearGenerationLoadingOverlay = () => {
+    setIsScreenshotLoaded(false);
+    setUrlScreenshot(null);
+    setIsPreparingDesign(false);
+    setTargetUrl('');
+    setScreenshotError(null);
+    setLoadingStage(null);
+    setIsStartingNewGeneration(false);
+    setShowLoadingBackground(false);
+  };
+
+  const refreshSandboxIframe = (url: string) => {
+    setPreviewIframeKey((prev) => prev + 1);
+    if (iframeRef.current) {
+      iframeRef.current.src = `${url}?t=${Date.now()}&preview=1`;
+    }
+  };
+
+  const syncSandboxUrlFromServer = async (): Promise<string | undefined> => {
+    try {
+      const response = await fetch('/api/sandbox-status');
+      const data = await response.json();
+      if (data.sandboxData?.url) {
+        setSandboxData(data.sandboxData);
+        sandboxDataRef.current = data.sandboxData;
+        updateStatus('Sandbox active', true);
+        return data.sandboxData.url as string;
+      }
+    } catch (error) {
+      console.error('[syncSandboxUrlFromServer] Failed:', error);
+    }
+    return sandboxDataRef.current?.url;
+  };
+
+  const runPreviewRecoveryLoop = async () => {
+    setActiveTab('preview');
+    setLoading(false);
+    clearGenerationLoadingOverlay();
+
+    const result = await ensureSandboxPreviewReady({
+      getSandboxUrl: () => sandboxDataRef.current?.url,
+      syncSandboxUrl: syncSandboxUrlFromServer,
+      refreshIframe: refreshSandboxIframe,
+      maxAttempts: appConfig.previewRecovery?.maxAttempts ?? 6,
+      onStatus: (status, message) => {
+        setPreviewRecovery({ status, message });
+      },
+      onLog: (message) => addChatMessage(message, 'system'),
+    });
+
+    if (result.sandboxUrl) {
+      setSandboxData((prev) => ({
+        ...(prev || { sandboxId: '' }),
+        url: result.sandboxUrl!,
+        sandboxId: prev?.sandboxId || sandboxDataRef.current?.sandboxId || '',
+      }));
+    }
+
+    if (result.success && result.sandboxUrl) {
+      setActiveTab('preview');
+      refreshSandboxIframe(result.sandboxUrl);
+      addChatMessage('Preview sandbox aktif dan siap ditampilkan.', 'system');
+      setTimeout(() => {
+        setPreviewRecovery({ status: 'idle', message: '' });
+      }, 3000);
+    } else if (!result.success) {
+      addChatMessage(
+        'Preview sandbox masih bermasalah setelah beberapa percobaan perbaikan otomatis. Minta perbaikan di chat jika perlu.',
+        'system'
+      );
+    }
+
+    return result;
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'preview' || !sandboxData?.url) return;
+    const url = `${sandboxData.url}?t=${previewIframeKey || Date.now()}&embed=1`;
+    if (iframeRef.current && iframeRef.current.src !== url) {
+      iframeRef.current.src = url;
+    }
+  }, [activeTab, sandboxData?.url, previewIframeKey]);
+
+  useEffect(() => {
+    if (activeTab !== 'preview' || sandboxData?.url) return;
+    syncSandboxUrlFromServer();
+  }, [activeTab, sandboxData?.url]);
+
   const checkSandboxStatus = async () => {
     try {
       const response = await fetch('/api/sandbox-status');
       const data = await response.json();
       
-      if (data.active && data.healthy && data.sandboxData) {
+      if (data.active && data.sandboxData?.url) {
         console.log('[checkSandboxStatus] Setting sandboxData from API:', data.sandboxData);
         setSandboxData(data.sandboxData);
-        updateStatus('Sandbox active', true);
+        sandboxDataRef.current = data.sandboxData;
+        updateStatus(data.healthy ? 'Sandbox active' : 'Sandbox starting...', !!data.healthy);
       } else if (data.active && !data.healthy) {
         // Sandbox exists but not responding
         updateStatus('Sandbox not responding', false);
@@ -1264,7 +1368,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
           )}
           
           {/* Code Content */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             {/* Thinking Mode Display - Only show during active generation */}
             {generationProgress.isGenerating && (generationProgress.isThinking || generationProgress.thinkingText) && (
               <div className="px-6 pb-6">
@@ -1528,188 +1632,111 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         </div>
       );
     } else if (activeTab === 'preview') {
-      // Show loading state for initial generation or when starting a new generation with existing sandbox
-      const isInitialGeneration = !sandboxData?.url && (urlScreenshot || isCapturingScreenshot || isPreparingDesign || loadingStage);
-      const isNewGenerationWithSandbox = isStartingNewGeneration && sandboxData?.url;
-      const shouldShowLoadingOverlay = (isInitialGeneration || isNewGenerationWithSandbox) && 
-        (loading || generationProgress.isGenerating || isPreparingDesign || loadingStage || isCapturingScreenshot || isStartingNewGeneration);
-      
-      if (isInitialGeneration || isNewGenerationWithSandbox) {
+      const sandboxUrl = sandboxData?.url;
+      const showGenerationOverlay =
+        isCapturingScreenshot ||
+        isPreparingDesign ||
+        !!loadingStage ||
+        generationProgress.isGenerating ||
+        isStartingNewGeneration ||
+        (!!codeApplicationState.stage && codeApplicationState.stage !== 'complete');
+
+      if (!sandboxUrl) {
         return (
-          <div className="relative w-full h-full bg-gray-900">
-            {/* Screenshot as background when available */}
+          <div className="relative w-full h-full min-h-0 bg-gray-900">
             {urlScreenshot && (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img 
-                src={urlScreenshot} 
-                alt="Website preview" 
+              <img
+                src={urlScreenshot}
+                alt="Website preview"
                 className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-                style={{ 
+                style={{
                   opacity: isScreenshotLoaded ? 1 : 0,
-                  willChange: 'opacity'
+                  willChange: 'opacity',
                 }}
                 onLoad={() => setIsScreenshotLoaded(true)}
                 loading="eager"
               />
             )}
-            
-            {/* Loading overlay - only show when actively processing initial generation */}
-            {shouldShowLoadingOverlay && (
-              <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center backdrop-blur-sm">
-                {/* Loading animation with skeleton */}
-                <div className="text-center max-w-md">
-                  {/* Animated skeleton lines */}
-                  <div className="mb-6 space-y-3">
-                    <div className="h-2 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded animate-pulse" 
-                         style={{ animationDuration: '1.5s', animationDelay: '0s' }} />
-                    <div className="h-2 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded animate-pulse w-4/5 mx-auto" 
-                         style={{ animationDuration: '1.5s', animationDelay: '0.2s' }} />
-                    <div className="h-2 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded animate-pulse w-3/5 mx-auto" 
-                         style={{ animationDuration: '1.5s', animationDelay: '0.4s' }} />
-                  </div>
-                  
-                  {/* Status text */}
-                  <p className="text-white text-lg font-medium">
-                    {isCapturingScreenshot ? 'Analyzing website...' :
-                     isPreparingDesign ? 'Preparing design...' :
-                     generationProgress.isGenerating ? 'Generating code...' :
-                     'Loading...'}
-                  </p>
-                  
-                  {/* Subtle progress hint */}
-                  <p className="text-white/60 text-sm mt-2">
-                    {isCapturingScreenshot ? 'Taking a screenshot of the site' :
-                     isPreparingDesign ? 'Understanding the layout and structure' :
-                     generationProgress.isGenerating ? 'Writing React components' :
-                     'Please wait...'}
-                  </p>
-                </div>
+
+            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center backdrop-blur-sm">
+              <div className="text-center max-w-md">
+                <div className="w-16 h-16 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-white text-lg font-medium">
+                  {isCapturingScreenshot ? 'Analyzing website...' :
+                   isPreparingDesign ? 'Preparing design...' :
+                   generationProgress.isGenerating ? 'Generating code...' :
+                   'Menyiapkan sandbox preview...'}
+                </p>
+                <p className="text-white/60 text-sm mt-2">
+                  Preview akan tampil otomatis setelah sandbox siap
+                </p>
               </div>
-            )}
+            </div>
           </div>
         );
       }
-      
-      // Show sandbox iframe - keep showing during edits, only hide during initial loading
-      if (sandboxData?.url) {
-        return (
-          <div className="relative w-full h-full">
-            <iframe
-              ref={iframeRef}
-              src={sandboxData.url}
-              className="w-full h-full border-none"
-              title="Open Lovable Sandbox"
-              allow="clipboard-write"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-            />
-            
-            {/* Package installation overlay - shows when installing packages or applying code */}
-            {codeApplicationState.stage && codeApplicationState.stage !== 'complete' && (
-              <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center z-10">
-                <div className="text-center max-w-md">
-                  <div className="mb-6">
-                    {/* Animated icon based on stage */}
-                    {codeApplicationState.stage === 'installing' ? (
-                      <div className="w-16 h-16 mx-auto">
-                        <svg className="w-full h-full animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      </div>
-                    ) : null}
-                  </div>
-                  
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {codeApplicationState.stage === 'analyzing' && 'Analyzing code...'}
-                    {codeApplicationState.stage === 'installing' && 'Installing packages...'}
-                    {codeApplicationState.stage === 'applying' && 'Applying changes...'}
-                  </h3>
-                  
-                  {/* Package list during installation */}
-                  {codeApplicationState.stage === 'installing' && codeApplicationState.packages && (
-                    <div className="mb-4">
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        {codeApplicationState.packages.map((pkg, index) => (
-                          <span 
-                            key={index}
-                            className={`px-2 py-1 text-xs rounded-full transition-all ${
-                              codeApplicationState.installedPackages?.includes(pkg)
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            {pkg}
-                            {codeApplicationState.installedPackages?.includes(pkg) && (
-                              <span className="ml-1">✓</span>
-                            )}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Files being generated */}
-                  {codeApplicationState.stage === 'applying' && codeApplicationState.filesGenerated && (
-                    <div className="text-sm text-gray-600">
-                      Creating {codeApplicationState.filesGenerated.length} files...
-                    </div>
-                  )}
-                  
-                  <p className="text-sm text-gray-500 mt-2">
-                    {codeApplicationState.stage === 'analyzing' && 'Parsing generated code and detecting dependencies...'}
-                    {codeApplicationState.stage === 'installing' && 'This may take a moment while npm installs the required packages...'}
-                    {codeApplicationState.stage === 'applying' && 'Writing files to your sandbox environment...'}
-                  </p>
-                </div>
-              </div>
-            )}
-            
-            {/* Show a subtle indicator when code is being edited/generated */}
-            {generationProgress.isGenerating && generationProgress.isEdit && !codeApplicationState.stage && (
-              <div className="absolute top-4 right-4 inline-flex items-center gap-2 px-3 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-white text-xs font-medium">Generating code...</span>
-              </div>
-            )}
-            
-            {/* Refresh button */}
-            <button
-              onClick={() => {
-                if (iframeRef.current && sandboxData?.url) {
-                  console.log('[Manual Refresh] Forcing iframe reload...');
-                  const newSrc = `${sandboxData.url}?t=${Date.now()}&manual=true`;
-                  iframeRef.current.src = newSrc;
-                }
-              }}
-              className="absolute bottom-4 right-4 bg-white/90 hover:bg-white text-gray-700 p-2 rounded-lg shadow-lg transition-all duration-200 hover:scale-105"
-              title="Refresh sandbox"
-            >
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-          </div>
-        );
-      }
-      
-      // Default state when no sandbox and no screenshot
+
       return (
-        <div className="flex items-center justify-center h-full bg-gray-50 text-gray-600 text-lg">
-          {screenshotError ? (
-            <div className="text-center">
-              <p className="mb-2">Failed to capture screenshot</p>
-              <p className="text-sm text-gray-500">{screenshotError}</p>
-            </div>
-          ) : sandboxData ? (
-            <div className="text-gray-500">
-              <div className="w-16 h-16 border-2 border-gray-300 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              <p className="text-sm">Loading preview...</p>
-            </div>
-          ) : (
-            <div className="text-gray-500 text-center">
-              <p className="text-sm">Start chatting to create your first app</p>
+        <div className="relative w-full h-full min-h-0 bg-white">
+          <iframe
+            key={`${sandboxUrl}-${previewIframeKey}`}
+            ref={iframeRef}
+            src={`${sandboxUrl}?t=${previewIframeKey}&embed=1`}
+            className="absolute inset-0 w-full h-full border-none bg-white"
+            title="Open Lovable Sandbox"
+            allow="clipboard-write"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+          />
+
+          {showGenerationOverlay && (
+            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center backdrop-blur-sm z-10">
+              <div className="text-center max-w-md px-16">
+                <div className="w-16 h-16 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-white text-lg font-medium">
+                  {codeApplicationState.stage === 'installing' ? 'Installing packages...' :
+                   codeApplicationState.stage === 'applying' ? 'Applying changes...' :
+                   generationProgress.isGenerating ? 'Generating code...' :
+                   'Loading preview...'}
+                </p>
+              </div>
             </div>
           )}
+
+          {/* Preview recovery status overlay */}
+          {previewRecovery.status !== 'idle' && previewRecovery.status !== 'ready' && (
+            <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 bg-white/95 border border-gray-200 shadow-lg rounded-lg px-16 py-10 flex items-center gap-10 max-w-[90%]">
+              {(previewRecovery.status === 'checking' || previewRecovery.status === 'fixing') && (
+                <div className="w-16 h-16 border-2 border-orange-500 border-t-transparent rounded-full animate-spin shrink-0" />
+              )}
+              <p className="text-sm text-gray-800">{previewRecovery.message}</p>
+            </div>
+          )}
+
+          {previewRecovery.status === 'ready' && previewRecovery.message && (
+            <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 bg-green-50 border border-green-200 shadow rounded-lg px-12 py-8">
+              <p className="text-sm text-green-800">{previewRecovery.message}</p>
+            </div>
+          )}
+
+          {generationProgress.isGenerating && generationProgress.isEdit && !codeApplicationState.stage && (
+            <div className="absolute top-4 right-4 inline-flex items-center gap-2 px-3 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg z-20">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <span className="text-white text-xs font-medium">Generating code...</span>
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              if (sandboxUrl) refreshSandboxIframe(sandboxUrl);
+            }}
+            className="absolute bottom-4 right-4 bg-white/90 hover:bg-white text-gray-700 p-2 rounded-lg shadow-lg transition-all duration-200 hover:scale-105 z-20"
+            title="Refresh sandbox"
+          >
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
         </div>
       );
     }
@@ -2108,6 +2135,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
           // Use isEdit flag that was determined at the start
           // Pass the sandbox data from the promise if it's different from the state
           await applyGeneratedCode(generatedCode, isEdit, activeSandboxData !== sandboxData ? activeSandboxData : undefined);
+          await runPreviewRecoveryLoop();
         }
       }
       
@@ -2124,10 +2152,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         thinkingDuration: undefined
       }));
       
-      setTimeout(() => {
-        // Switch to preview but keep files for display
-        setActiveTab('preview');
-      }, 1000); // Reduced from 3000ms to 1000ms
+      setActiveTab('preview');
+      clearGenerationLoadingOverlay();
     } catch (error: any) {
       setChatMessages(prev => prev.filter(msg => msg.content !== 'Thinking...'));
       addChatMessage(`Error: ${error.message}`, 'system');
@@ -3214,6 +3240,9 @@ Focus on the key sections and content, making it clean and modern.`;
           // Apply the code (first time is not edit mode)
           await applyGeneratedCode(generatedCode, false);
 
+          clearGenerationLoadingOverlay();
+          setActiveTab('preview');
+
           addChatMessage(
             brandExtensionMode
               ? `Successfully built your custom component using ${cleanUrl}'s brand guidelines! You can now ask me to modify it or add more features.`
@@ -3225,6 +3254,8 @@ Focus on the key sections and content, making it clean and modern.`;
               generatedCode: generatedCode
             }
           );
+
+          await runPreviewRecoveryLoop();
           
           setConversationContext(prev => ({
             ...prev,
@@ -3250,20 +3281,8 @@ Focus on the key sections and content, making it clean and modern.`;
           status: 'Generation complete!'
         }));
         
-        // Clear screenshot and preparing design states to prevent them from showing on next run
-        setIsScreenshotLoaded(false); // Reset loaded state
-        setUrlScreenshot(null);
-        setIsPreparingDesign(false);
-        setTargetUrl('');
-        setScreenshotError(null);
-        setLoadingStage(null); // Clear loading stage
-        setIsStartingNewGeneration(false); // Clear new generation flag
-        setShowLoadingBackground(false); // Clear loading background
-        
-        setTimeout(() => {
-          // Switch back to preview tab but keep files
-          setActiveTab('preview');
-        }, 1000); // Show completion briefly then switch
+        clearGenerationLoadingOverlay();
+        setActiveTab('preview');
       } catch (error: any) {
         addChatMessage(`Failed to clone website: ${error.message}`, 'system');
         setUrlStatus([]);
@@ -3343,7 +3362,7 @@ Focus on the key sections and content, making it clean and modern.`;
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Center Panel - AI Chat (1/3 of remaining width) */}
         <div className="flex-1 max-w-[400px] flex flex-col border-r border-border bg-background">
           {/* Sidebar Input Component */}
@@ -3862,7 +3881,7 @@ Focus on the key sections and content, making it clean and modern.`;
         </div>
 
         {/* Right Panel - Preview or Generation (2/3 of remaining width) */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           <div className="px-3 pt-4 pb-4 bg-white border-b border-gray-200 flex justify-between items-center">
             <div className="flex items-center gap-2">
               {/* Toggle-style Code/View switcher */}
@@ -3940,7 +3959,7 @@ Focus on the key sections and content, making it clean and modern.`;
               )}
             </div>
           </div>
-          <div className="flex-1 relative overflow-hidden">
+          <div className="flex-1 relative overflow-hidden min-h-0">
             {renderMainContent()}
           </div>
         </div>

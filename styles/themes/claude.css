@@ -1,0 +1,153 @@
+/* Shared theme picker cards */
+.theme-card {
+  border: 1px solid var(--border-faint);
+  border-radius: 12px;
+  background: var(--white, #fff);
+}
+
+/* Claude visual theme — tokens from DESIGN.md */
+
+html[data-visual-theme="claude"] {
+  --claude-primary: #cc785c;
+  --claude-primary-active: #a9583e;
+  --claude-primary-disabled: #e6dfd8;
+  --claude-ink: #141413;
+  --claude-body: #3d3d3a;
+  --claude-muted: #6c6a64;
+  --claude-hairline: #e6dfd8;
+  --claude-canvas: #faf9f5;
+  --claude-surface-soft: #f5f0e8;
+  --claude-surface-card: #efe9de;
+  --claude-on-primary: #ffffff;
+
+  --heat-4: rgba(204, 120, 92, 0.08);
+  --heat-8: rgba(204, 120, 92, 0.12);
+  --heat-12: rgba(204, 120, 92, 0.16);
+  --heat-16: rgba(204, 120, 92, 0.2);
+  --heat-20: rgba(204, 120, 92, 0.24);
+  --heat-40: rgba(204, 120, 92, 0.4);
+  --heat-100: var(--claude-primary);
+  --heat-200: var(--claude-primary-active);
+
+  --background-base: var(--claude-canvas);
+  --background-lighter: var(--claude-surface-soft);
+  --accent-black: var(--claude-ink);
+  --accent-white: var(--claude-on-primary);
+  --foreground: var(--claude-ink);
+  --foreground-dimmer: var(--claude-body);
+  --border-faint: var(--claude-hairline);
+  --border-muted: #ebe6df;
+  --border-loud: #e0d8cc;
+  --black-alpha-48: rgba(20, 20, 19, 0.48);
+  --black-alpha-64: rgba(20, 20, 19, 0.64);
+  --black-alpha-72: rgba(20, 20, 19, 0.72);
+
+  --font-display: var(--font-cormorant), "Cormorant Garamond", "Tiempos Headline", Georgia, "Times New Roman", serif;
+  --font-ui: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono-ui: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
+
+  color: var(--claude-body);
+  background-color: var(--claude-canvas);
+}
+
+html[data-visual-theme="claude"].dark {
+  --claude-canvas: #181715;
+  --claude-surface-soft: #1f1e1b;
+  --claude-surface-card: #252320;
+  --claude-surface-elevated: #252320;
+  --claude-ink: #faf9f5;
+  --claude-body: #d8d5cd;
+  --claude-muted: #a09d96;
+  --claude-hairline: #3a3834;
+  --claude-primary-disabled: #4a4038;
+
+  --background-base: var(--claude-canvas);
+  --background-lighter: var(--claude-surface-soft);
+  --accent-black: var(--claude-ink);
+  --accent-white: #141413;
+  --foreground: var(--claude-ink);
+  --foreground-dimmer: var(--claude-muted);
+  --border-faint: var(--claude-hairline);
+  --border-muted: #33312d;
+  --border-loud: #3f3c37;
+  --black-alpha-48: rgba(250, 249, 245, 0.48);
+  --black-alpha-64: rgba(250, 249, 245, 0.64);
+  --black-alpha-72: rgba(250, 249, 245, 0.72);
+
+  color: var(--claude-body);
+  background-color: var(--claude-canvas);
+}
+
+html[data-visual-theme="claude"] .text-title-h1,
+html[data-visual-theme="claude"] .text-title-h2,
+html[data-visual-theme="claude"] .text-title-h3,
+html[data-visual-theme="claude"] .text-title-h4,
+html[data-visual-theme="claude"] .text-title-h5 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--claude-ink);
+}
+
+html[data-visual-theme="claude"] .button-primary .button-background,
+html[data-visual-theme="claude"] .button-primary {
+  background-color: var(--claude-primary) !important;
+}
+
+html[data-visual-theme="claude"] .button-primary:hover {
+  background-color: var(--claude-primary-active) !important;
+}
+
+html[data-visual-theme="claude"] .bg-white {
+  background-color: var(--claude-canvas) !important;
+}
+
+html[data-visual-theme="claude"] .dark .bg-white,
+html[data-visual-theme="claude"].dark .bg-white {
+  background-color: var(--claude-surface-card) !important;
+}
+
+html[data-visual-theme="claude"] .rounded-20.bg-white,
+html[data-visual-theme="claude"] [class*="border-border-faint"].bg-white {
+  border-color: var(--claude-hairline) !important;
+}
+
+html[data-visual-theme="claude"] .text-accent-black {
+  color: var(--claude-ink) !important;
+}
+
+html[data-visual-theme="claude"] .text-black-alpha-64,
+html[data-visual-theme="claude"] .text-black-alpha-48 {
+  color: var(--claude-muted) !important;
+}
+
+html[data-visual-theme="claude"] .header,
+html[data-visual-theme="claude"] #home-hero {
+  background-color: var(--claude-canvas);
+}
+
+html[data-visual-theme="claude"].dark .header,
+html[data-visual-theme="claude"].dark #home-hero {
+  background-color: var(--claude-canvas);
+}
+
+html[data-visual-theme="claude"] .button-secondary,
+html[data-visual-theme="claude"] .button-tertiary {
+  color: var(--claude-ink);
+}
+
+html[data-visual-theme="claude"] input,
+html[data-visual-theme="claude"] select,
+html[data-visual-theme="claude"] textarea {
+  font-family: var(--font-ui);
+}
+
+html[data-visual-theme="claude"] .theme-card {
+  background: var(--claude-surface-card);
+  border: 1px solid var(--claude-hairline);
+  border-radius: 12px;
+}
+
+html[data-visual-theme="claude"].dark .theme-card {
+  background: var(--claude-surface-card);
+}

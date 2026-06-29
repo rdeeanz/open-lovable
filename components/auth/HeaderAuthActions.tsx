@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ButtonUI from "@/components/ui/shadcn/button";
+import ThemeModeToggle from "@/components/theme/ThemeModeToggle";
 import type { UserRole } from "@/lib/auth/types";
 
 interface AuthUser {
@@ -41,6 +42,7 @@ export default function HeaderAuthActions() {
   if (user) {
     return (
       <div className="flex flex-wrap items-center justify-end gap-4 sm:gap-8">
+        <ThemeModeToggle />
         {user.role === "admin" && (
           <Link href="/admin" className="contents">
             <ButtonUI variant="primary" className="!px-8 !py-6 text-label-small sm:text-label-medium">Admin</ButtonUI>
@@ -58,8 +60,11 @@ export default function HeaderAuthActions() {
   }
 
   return (
-    <Link href="/login" className="contents">
-      <ButtonUI variant="secondary" className="!px-8 !py-6 text-label-small sm:text-label-medium">Masuk</ButtonUI>
-    </Link>
+    <div className="flex items-center gap-8">
+      <ThemeModeToggle />
+      <Link href="/login" className="contents">
+        <ButtonUI variant="secondary" className="!px-8 !py-6 text-label-small sm:text-label-medium">Masuk</ButtonUI>
+      </Link>
+    </div>
   );
 }

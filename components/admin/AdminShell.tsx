@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import HeaderBrandKit from "@/components/shared/header/BrandKit/BrandKit";
 import LogoutButton from "@/components/auth/LogoutButton";
+import ThemeModeToggle from "@/components/theme/ThemeModeToggle";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", exact: true },
@@ -24,6 +25,7 @@ export default function AdminShell({
         <div className="max-w-[1200px] mx-auto px-16 py-12 flex items-center justify-between">
           <HeaderBrandKit />
           <div className="flex items-center gap-12">
+            <ThemeModeToggle />
             <span className="text-body-small text-black-alpha-64 hidden sm:inline">
               {adminName}
             </span>

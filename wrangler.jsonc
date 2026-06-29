@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "open-lovable",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "open-lovable-db",
+      "database_id": "9a82e385-32f1-45cf-8585-357626936fa6"
+    }
+  ]
+,
+  "r2_buckets": [
+    {
+      "binding": "UPLOADS",
+      "bucket_name": "open-lovable-uploads"
+    }
+  ]
+}

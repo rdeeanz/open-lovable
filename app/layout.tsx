@@ -1,12 +1,26 @@
 import type { Metadata } from "next";
-import { Inter, Roboto_Mono } from "next/font/google";
+import { Cormorant_Garamond, Inter, JetBrains_Mono, Roboto_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { Toaster } from "sonner";
+import SiteThemeProvider from "@/components/theme/SiteThemeProvider";
+import { getSiteSettings } from "@/lib/admin/store";
 import "./globals.css";
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter"
+  variable: "--font-inter",
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-cormorant",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
 });
 
 const geistSans = localFont({
@@ -31,16 +45,29 @@ export const metadata: Metadata = {
   description: "Re-imagine any website in seconds with AI-powered website builder.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const settings = await getSiteSettings();
+
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} ${robotoMono.variable} font-sans`}>
-        {children}
-        <Toaster position="top-center" richColors />
+    <html
+      lang="en"
+      suppressHydrationWarning
+      data-visual-theme={settings.visualTheme}
+    >
+      <body
+        className={`${inter.variable} ${cormorant.variable} ${jetbrainsMono.variable} ${geistSans.variable} ${geistMono.variable} ${robotoMono.variable} font-sans`}
+      >
+        <SiteThemeProvider
+          initialVisualTheme={settings.visualTheme}
+          initialColorMode={settings.colorMode}
+        >
+          {children}
+          <Toaster position="top-center" richColors />
+        </SiteThemeProvider>
       </body>
     </html>
   );
