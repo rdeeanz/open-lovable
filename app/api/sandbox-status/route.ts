@@ -18,15 +18,14 @@ export async function GET() {
 
     if (sandboxExists && provider) {
       try {
-        // Check if sandbox is healthy by getting its info
         const providerInfo = provider.getSandboxInfo();
-        sandboxHealthy = !!providerInfo;
-        
+        sandboxHealthy = await provider.isDevServerHealthy?.().catch(() => false);
+
         sandboxInfo = {
           sandboxId: providerInfo?.sandboxId || global.sandboxData?.sandboxId,
           url: providerInfo?.url || global.sandboxData?.url,
           filesTracked: global.existingFiles ? Array.from(global.existingFiles) : [],
-          lastHealthCheck: new Date().toISOString()
+          lastHealthCheck: new Date().toISOString(),
         };
       } catch (error) {
         console.error('[sandbox-status] Health check failed:', error);

@@ -51,6 +51,10 @@ export abstract class SandboxProvider {
   abstract getSandboxInfo(): SandboxInfo | null;
   abstract terminate(): Promise<void>;
   abstract isAlive(): boolean;
+
+  async isDevServerHealthy(): Promise<boolean> {
+    return this.isAlive();
+  }
   
   // Optional methods that providers can override
   async setupViteApp(): Promise<void> {

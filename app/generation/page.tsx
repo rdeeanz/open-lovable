@@ -1836,6 +1836,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                 
                 if (data.type === 'status') {
                   setGenerationProgress(prev => ({ ...prev, status: data.message }));
+                } else if (data.type === 'error') {
+                  throw new Error(data.message || data.error || 'Failed to generate recreation');
                 } else if (data.type === 'thinking') {
                   setGenerationProgress(prev => ({ 
                     ...prev, 
@@ -2768,7 +2770,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
           });
           
           if (!scrapeResponse.ok) {
-            throw new Error('Failed to scrape website');
+            const errorData = await scrapeResponse.json().catch(() => null);
+            throw new Error(errorData?.error || 'Failed to scrape website');
           }
           
           scrapeData = await scrapeResponse.json() as ScrapeData;
@@ -3051,6 +3054,8 @@ Focus on the key sections and content, making it clean and modern.`;
                 
                 if (data.type === 'status') {
                   setGenerationProgress(prev => ({ ...prev, status: data.message }));
+                } else if (data.type === 'error') {
+                  throw new Error(data.message || data.error || 'Failed to generate recreation');
                 } else if (data.type === 'thinking') {
                   setGenerationProgress(prev => ({ 
                     ...prev, 

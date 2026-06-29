@@ -1,9 +1,60 @@
 import { Sandbox } from '@vercel/sandbox';
 import { SandboxProvider, SandboxInfo, CommandResult } from '../types';
-// SandboxProviderConfig available through parent class
+import { appConfig } from '@/config/app.config';
 
 export class VercelProvider extends SandboxProvider {
   private existingFiles: Set<string> = new Set();
+
+  private get devPort(): number {
+    return appConfig.vercelSandbox.devPort;
+  }
+
+  private async waitForDevServer(): Promise<void> {
+    if (!this.sandbox) return;
+
+    const port = this.devPort;
+    const maxAttempts = 20;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const result = await this.sandbox.runCommand({
+        cmd: 'sh',
+        args: ['-c', `curl -sf -o /dev/null http://127.0.0.1:${port} 2>/dev/null || wget -q -O /dev/null http://127.0.0.1:${port} 2>/dev/null`],
+        cwd: '/',
+      });
+
+      if (result.exitCode === 0) {
+        console.log(`[VercelProvider] Dev server listening on port ${port}`);
+        return;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    console.warn(`[VercelProvider] Dev server not confirmed on port ${port} after ${maxAttempts}s`);
+  }
+
+  private async startViteServer(): Promise<void> {
+    if (!this.sandbox) {
+      throw new Error('No active sandbox');
+    }
+
+    await this.sandbox.runCommand({
+      cmd: 'sh',
+      args: ['-c', 'pkill -f vite || true'],
+      cwd: '/',
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    await this.sandbox.runCommand({
+      cmd: 'npm',
+      args: ['run', 'dev'],
+      cwd: '/vercel/sandbox',
+      detached: true,
+    });
+
+    await this.waitForDevServer();
+  }
 
   async createSandbox(): Promise<SandboxInfo> {
     try {
@@ -24,9 +75,9 @@ export class VercelProvider extends SandboxProvider {
       // Create Vercel sandbox
       
       const sandboxConfig: any = {
-        timeout: 300000, // 5 minutes in ms
-        runtime: 'node22', // Use node22 runtime for Vercel sandboxes
-        ports: [5173] // Vite port
+        timeout: appConfig.vercelSandbox.timeoutMs,
+        runtime: appConfig.vercelSandbox.runtime,
+        ports: [this.devPort],
       };
 
       // Add authentication based on environment variables
@@ -44,7 +95,7 @@ export class VercelProvider extends SandboxProvider {
       // Sandbox created successfully
       
       // Get the sandbox URL using the correct Vercel Sandbox API
-      const sandboxUrl = this.sandbox.domain(5173);
+      const sandboxUrl = this.sandbox.domain(this.devPort);
 
       this.sandboxInfo = {
         sandboxId,
@@ -327,8 +378,10 @@ export class VercelProvider extends SandboxProvider {
       throw new Error('No active sandbox');
     }
 
-    // Setting up Vite app for sandbox
-    
+    const port = this.devPort;
+    const sandboxUrl = this.sandbox.domain(port);
+    const sandboxHostname = new URL(sandboxUrl).hostname;
+
     // Create directory structure
     const mkdirResult = await this.sandbox.runCommand({
       cmd: 'mkdir',
@@ -342,7 +395,7 @@ export class VercelProvider extends SandboxProvider {
       version: "1.0.0",
       type: "module",
       scripts: {
-        dev: "vite --host",
+        dev: `vite --host 0.0.0.0 --port ${port}`,
         build: "vite build",
         preview: "vite preview"
       },
@@ -369,12 +422,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
-    port: 5173,
+    port: ${port},
     strictPort: true,
     allowedHosts: [
-      '.vercel.run',  // Allow all Vercel sandbox domains
-      '.e2b.dev',     // Allow all E2B sandbox domains
-      'localhost'
+      'localhost',
+      '127.0.0.1',
+      '${sandboxHostname}',
+      '.vercel.run',
+      '.vercel-sandbox.dev',
+      '.e2b.dev',
     ],
     hmr: {
       clientPort: 443,
@@ -511,27 +567,7 @@ body {
       }
     }
     
-    // Start Vite dev server
-    // Starting Vite dev server
-    
-    // Kill any existing Vite processes
-    await this.sandbox.runCommand({
-      cmd: 'sh',
-      args: ['-c', 'pkill -f vite || true'],
-      cwd: '/'
-    });
-    
-    // Start Vite in background
-    await this.sandbox.runCommand({
-      cmd: 'sh',
-      args: ['-c', 'nohup npm run dev > /tmp/vite.log 2>&1 &'],
-      cwd: '/vercel/sandbox'
-    });
-    
-    // Vite server started in background
-    
-    // Wait for Vite to be ready
-    await new Promise(resolve => setTimeout(resolve, 7000));
+    await this.startViteServer();
     
     // Track initial files
     this.existingFiles.add('src/App.jsx');
@@ -549,29 +585,7 @@ body {
       throw new Error('No active sandbox');
     }
 
-    // Restarting Vite server
-    
-    // Kill existing Vite process
-    await this.sandbox.runCommand({
-      cmd: 'sh',
-      args: ['-c', 'pkill -f vite || true'],
-      cwd: '/'
-    });
-    
-    // Wait a moment
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Start Vite in background
-    await this.sandbox.runCommand({
-      cmd: 'sh',
-      args: ['-c', 'nohup npm run dev > /tmp/vite.log 2>&1 &'],
-      cwd: '/vercel/sandbox'
-    });
-    
-    // Vite server started in background
-    
-    // Wait for Vite to be ready
-    await new Promise(resolve => setTimeout(resolve, 7000));
+    await this.startViteServer();
   }
 
   getSandboxUrl(): string | null {
@@ -596,5 +610,20 @@ body {
 
   isAlive(): boolean {
     return !!this.sandbox;
+  }
+
+  async isDevServerHealthy(): Promise<boolean> {
+    if (!this.sandbox) return false;
+
+    try {
+      const result = await this.sandbox.runCommand({
+        cmd: 'sh',
+        args: ['-c', `curl -sf -o /dev/null http://127.0.0.1:${this.devPort} 2>/dev/null || wget -q -O /dev/null http://127.0.0.1:${this.devPort} 2>/dev/null`],
+        cwd: '/',
+      });
+      return result.exitCode === 0;
+    } catch {
+      return false;
+    }
   }
 }

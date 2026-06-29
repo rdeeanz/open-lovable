@@ -44,6 +44,11 @@ const openai = createOpenAI({
   baseURL: isUsingAIGateway ? aiGatewayBaseURL : process.env.OPENAI_BASE_URL,
 });
 
+const deepseek = createOpenAI({
+  apiKey: process.env.AI_GATEWAY_API_KEY ?? process.env.DEEPSEEK_API_KEY,
+  baseURL: isUsingAIGateway ? aiGatewayBaseURL : (process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1'),
+});
+
 // Helper function to analyze user preferences from conversation history
 function analyzeUserPreferences(messages: ConversationMessage[]): {
   commonPatterns: string[];
@@ -1216,11 +1221,13 @@ MORPH FAST APPLY MODE (EDIT-ONLY):
         const isAnthropic = model.startsWith('anthropic/');
         const isGoogle = model.startsWith('google/');
         const isOpenAI = model.startsWith('openai/');
+        const isDeepSeek = model.startsWith('deepseek/');
         const isKimiGroq = model === 'moonshotai/kimi-k2-instruct-0905';
         const modelProvider = isAnthropic ? anthropic : 
                               (isOpenAI ? openai : 
                               (isGoogle ? googleGenerativeAI : 
-                              (isKimiGroq ? groq : groq)));
+                              (isDeepSeek ? deepseek :
+                              (isKimiGroq ? groq : groq))));
         
         // Fix model name transformation for different providers
         let actualModel: string;
@@ -1234,17 +1241,19 @@ MORPH FAST APPLY MODE (EDIT-ONLY):
         } else if (isGoogle) {
           // Google uses specific model names - convert our naming to theirs  
           actualModel = model.replace('google/', '');
+        } else if (isDeepSeek) {
+          actualModel = model.replace('deepseek/', '');
         } else {
           actualModel = model;
         }
 
-        console.log(`[generate-ai-code-stream] Using provider: ${isAnthropic ? 'Anthropic' : isGoogle ? 'Google' : isOpenAI ? 'OpenAI' : 'Groq'}, model: ${actualModel}`);
+        console.log(`[generate-ai-code-stream] Using provider: ${isAnthropic ? 'Anthropic' : isGoogle ? 'Google' : isOpenAI ? 'OpenAI' : isDeepSeek ? 'DeepSeek' : 'Groq'}, model: ${actualModel}`);
         console.log(`[generate-ai-code-stream] AI Gateway enabled: ${isUsingAIGateway}`);
         console.log(`[generate-ai-code-stream] Model string: ${model}`);
 
         // Make streaming API call with appropriate provider
         const streamOptions: any = {
-          model: modelProvider(actualModel),
+          model: isDeepSeek ? deepseek.chat(actualModel) : modelProvider(actualModel),
           messages: [
             { 
               role: 'system', 
@@ -1365,7 +1374,7 @@ It's better to have 3 complete files than 10 incomplete files.`
               // Final error, send to user
               await sendProgress({ 
                 type: 'error', 
-                message: `Failed to initialize ${isGoogle ? 'Gemini' : isAnthropic ? 'Claude' : isOpenAI ? 'GPT-5' : isKimiGroq ? 'Kimi (Groq)' : 'Groq'} streaming: ${streamError.message}` 
+                message: `Failed to initialize ${isGoogle ? 'Gemini' : isAnthropic ? 'Claude' : isOpenAI ? 'GPT-5' : isDeepSeek ? 'DeepSeek' : isKimiGroq ? 'Kimi (Groq)' : 'Groq'} streaming: ${streamError.message}` 
               });
               
               // If this is a Google model error, provide helpful info
@@ -1731,6 +1740,8 @@ Provide the complete file content without any truncation. Include all necessary 
                   completionClient = openai;
                 } else if (model.includes('claude')) {
                   completionClient = anthropic;
+                } else if (model.startsWith('deepseek/')) {
+                  completionClient = deepseek.chat;
                 } else if (model === 'moonshotai/kimi-k2-instruct-0905') {
                   completionClient = groq;
                 } else {
@@ -1747,6 +1758,8 @@ Provide the complete file content without any truncation. Include all necessary 
                   completionModelName = model.replace('anthropic/', '');
                 } else if (model.includes('google')) {
                   completionModelName = model.replace('google/', '');
+                } else if (model.startsWith('deepseek/')) {
+                  completionModelName = model.replace('deepseek/', '');
                 } else {
                   completionModelName = model;
                 }

@@ -50,23 +50,30 @@ export const appConfig = {
   
   // AI Model Configuration
   ai: {
-    // Default AI model
-    defaultModel: 'google/gemini-3-pro-preview',
+    // Default AI model (falls back to first provider with a configured API key)
+    defaultModel: 'deepseek/deepseek-chat',
     
     // Available models
     availableModels: [
       'openai/gpt-5',
       'moonshotai/kimi-k2-instruct-0905',
-      'anthropic/claude-sonnet-4-20250514',
-      'google/gemini-3-pro-preview'
+      'anthropic/claude-sonnet-4-6',
+      'google/gemini-3-pro-preview',
+      'deepseek/deepseek-chat'
     ],
     
     // Model display names
     modelDisplayNames: {
       'openai/gpt-5': 'GPT-5',
       'moonshotai/kimi-k2-instruct-0905': 'Kimi K2 (Groq)',
-      'anthropic/claude-sonnet-4-20250514': 'Sonnet 4',
-      'google/gemini-3-pro-preview': 'Gemini 3 Pro (Preview)'
+      'anthropic/claude-sonnet-4-6': 'Sonnet 4.6',
+      'google/gemini-3-pro-preview': 'Gemini 3 Pro (Preview)',
+      'deepseek/deepseek-chat': 'DeepSeek Chat'
+    } as Record<string, string>,
+
+    // Retired model IDs mapped to current replacements
+    deprecatedModels: {
+      'anthropic/claude-sonnet-4-20250514': 'anthropic/claude-sonnet-4-6',
     } as Record<string, string>,
     
     // Model API configuration
@@ -182,6 +189,15 @@ export const appConfig = {
     requestTimeout: 30000,
   }
 };
+
+// Helper to resolve model IDs, including retired aliases
+export function resolveModel(model?: string | null): string {
+  if (!model) return appConfig.ai.defaultModel;
+  if (appConfig.ai.availableModels.includes(model)) return model;
+  const migrated = appConfig.ai.deprecatedModels?.[model];
+  if (migrated && appConfig.ai.availableModels.includes(migrated)) return migrated;
+  return appConfig.ai.defaultModel;
+}
 
 // Type-safe config getter
 export function getConfig<K extends keyof typeof appConfig>(key: K): typeof appConfig[K] {

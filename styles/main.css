@@ -280,3 +280,45 @@ input[type="text"]:focus-visible {
   box-shadow: none !important;
   border-color: inherit !important;
 }
+
+/* Homepage responsive enhancements */
+@media (max-width: 995px) {
+  .carousel-section .carousel-viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .carousel-section .carousel-viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .carousel-section .carousel-container {
+    animation: none !important;
+    position: relative !important;
+    width: max-content;
+    scroll-snap-type: x mandatory;
+    padding-inline: 12px;
+  }
+
+  .carousel-section .carousel-container > * {
+    scroll-snap-align: center;
+  }
+
+  @media (hover: none) {
+    .carousel-section .group .opacity-0 {
+      opacity: 1;
+    }
+
+    .carousel-section .group .bg-gradient-to-t {
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.25), transparent);
+    }
+  }
+}
+
+@media (max-width: 575px) {
+  #home-hero {
+    overflow-x: clip;
+  }
+}

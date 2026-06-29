@@ -4,7 +4,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
-type ProviderName = 'openai' | 'anthropic' | 'groq' | 'google';
+type ProviderName = 'openai' | 'anthropic' | 'groq' | 'google' | 'deepseek';
 
 // Client function type returned by @ai-sdk providers
 export type ProviderClient =
@@ -40,6 +40,8 @@ function getEnvDefaults(provider: ProviderName): { apiKey?: string; baseURL?: st
       return { apiKey: process.env.GROQ_API_KEY, baseURL: process.env.GROQ_BASE_URL };
     case 'google':
       return { apiKey: process.env.GEMINI_API_KEY, baseURL: process.env.GEMINI_BASE_URL };
+    case 'deepseek':
+      return { apiKey: process.env.DEEPSEEK_API_KEY, baseURL: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1' };
     default:
       return {};
   }
@@ -68,6 +70,9 @@ function getOrCreateClient(provider: ProviderName, apiKey?: string, baseURL?: st
     case 'google':
       client = createGoogleGenerativeAI({ apiKey: effective.apiKey || getEnvDefaults('google').apiKey, baseURL: effective.baseURL ?? getEnvDefaults('google').baseURL });
       break;
+    case 'deepseek':
+      client = createOpenAI({ apiKey: effective.apiKey || getEnvDefaults('deepseek').apiKey, baseURL: effective.baseURL ?? getEnvDefaults('deepseek').baseURL });
+      break;
     default:
       client = createGroq({ apiKey: effective.apiKey || getEnvDefaults('groq').apiKey, baseURL: effective.baseURL ?? getEnvDefaults('groq').baseURL });
   }
@@ -89,6 +94,7 @@ export function getProviderForModel(modelId: string): ProviderResolution {
   const isAnthropic = modelId.startsWith('anthropic/');
   const isOpenAI = modelId.startsWith('openai/');
   const isGoogle = modelId.startsWith('google/');
+  const isDeepSeek = modelId.startsWith('deepseek/');
   const isKimiGroq = modelId === 'moonshotai/kimi-k2-instruct-0905';
 
   if (isKimiGroq) {
@@ -109,6 +115,15 @@ export function getProviderForModel(modelId: string): ProviderResolution {
   if (isGoogle) {
     const client = getOrCreateClient('google');
     return { client, actualModel: modelId.replace('google/', '') };
+  }
+
+  if (isDeepSeek) {
+    const client = getOrCreateClient('deepseek') as ReturnType<typeof createOpenAI>;
+    const actualModel = modelId.replace('deepseek/', '');
+    return {
+      client: ((model: string) => client.chat(model)) as ProviderClient,
+      actualModel,
+    };
   }
 
   // Default: use Groq with modelId as-is

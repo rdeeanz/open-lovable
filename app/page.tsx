@@ -28,6 +28,8 @@ import HeaderWrapper from "@/components/shared/header/Wrapper/Wrapper";
 import HeaderDropdownWrapper from "@/components/shared/header/Dropdown/Wrapper/Wrapper";
 import GithubIcon from "@/components/shared/header/Github/_svg/GithubIcon";
 import ButtonUI from "@/components/ui/shadcn/button"
+import HeaderAuthActions from "@/components/auth/HeaderAuthActions";
+import MaintenanceBanner from "@/components/admin/MaintenanceBanner";
 
 interface SearchResult {
   url: string;
@@ -219,6 +221,7 @@ export default function HomePage() {
   return (
     <HeaderProvider>
       <div className="min-h-screen bg-background-base">
+        <MaintenanceBanner />
         {/* Header/Navigation Section */}
         <HeaderDropdownWrapper />
 
@@ -231,19 +234,22 @@ export default function HomePage() {
           </div>
 
           <HeaderWrapper>
-            <div className="max-w-[900px] mx-auto w-full flex justify-between items-center">
-              <div className="flex gap-24 items-center">
+            <div className="max-w-[900px] mx-auto w-full flex flex-col gap-12 sm:flex-row sm:justify-between sm:items-center">
+              <div className="flex items-center min-w-0 shrink-0">
                 <HeaderBrandKit />
               </div>
-              <div className="flex gap-8">
+              <div className="flex flex-wrap items-center justify-end gap-6 sm:gap-8 min-w-0">
+                <HeaderAuthActions />
                 <a
-                  className="contents"
+                  className="contents shrink-0"
                   href="https://github.com/mendableai/open-lovable"
                   target="_blank"
+                  rel="noreferrer"
                 >
-                  <ButtonUI variant="tertiary">
+                  <ButtonUI variant="tertiary" className="!px-8 !py-6 text-label-small sm:text-label-medium whitespace-nowrap">
                     <GithubIcon />
-                    Use this Template
+                    <span className="hidden md:inline">Use this Template</span>
+                    <span className="md:hidden">GitHub</span>
                   </ButtonUI>
                 </a>
               </div>
@@ -253,16 +259,16 @@ export default function HomePage() {
 
         {/* Hero Section */}
         <section className="overflow-x-clip" id="home-hero">
-          <div className="pt-28 lg:pt-254 lg:-mt-100 pb-115 relative" id="hero-content">
+          <div className="pt-20 sm:pt-28 md:pt-40 lg:pt-254 lg:-mt-100 pb-16 sm:pb-24 md:pb-48 lg:pb-115 relative" id="hero-content">
             <HomeHeroPixi />
             <HeroFlame />
             <BackgroundOuterPiece />
             <HomeHeroBackground />
 
-            <div className="relative container px-16">
+            <div className="relative container px-12 sm:px-16">
               <HomeHeroBadge />
               <HomeHeroTitle />
-              <p className="text-center text-body-large">
+              <p className="text-center text-body-medium sm:text-body-large px-8 sm:px-16 max-w-2xl mx-auto">
                 Clone brand format or re-imagine any website, in seconds.
               </p>
               <Link
@@ -276,7 +282,7 @@ export default function HomePage() {
           </div>
 
           {/* Mini Playground Input */}
-          <div className="container lg:contents !p-16 relative -mt-90">
+          <div className="container lg:contents px-12 sm:px-16 !p-12 sm:!p-16 relative -mt-6 sm:-mt-12 md:-mt-20 lg:-mt-90">
             <div className="absolute top-0 left-[calc(50%-50vw)] w-screen h-1 bg-border-faint lg:hidden" />
             <div className="absolute bottom-0 left-[calc(50%-50vw)] w-screen h-1 bg-border-faint lg:hidden" />
             <Connector className="-top-10 -left-[10.5px] lg:hidden" />
@@ -285,7 +291,7 @@ export default function HomePage() {
             <Connector className="-bottom-10 -right-[10.5px] lg:hidden" />
 
             {/* Hero Input Component */}
-            <div className="max-w-552 mx-auto z-[11] lg:z-[2]">
+            <div className="max-w-552 mx-auto w-full z-[11] lg:z-[2]">
               <div className="rounded-20 -mt-30 lg:-mt-30">
                 <div
                   className="bg-white rounded-20 relative z-10"
@@ -295,7 +301,7 @@ export default function HomePage() {
                   }}
                 >
 
-                <div className="p-[28px] flex gap-12 items-center w-full relative bg-white rounded-20">
+                <div className="p-16 sm:p-[28px] flex flex-col sm:flex-row gap-12 sm:items-center w-full relative bg-white rounded-20">
                   {/* Show different UI when search results are displayed */}
                   {hasSearched && searchResults.length > 0 && !isFadingOut ? (
                     <>
@@ -315,7 +321,7 @@ export default function HomePage() {
                       </svg>
                       
                       {/* Selection message */}
-                      <div className="flex-1 text-body-input text-accent-black">
+                      <div className="flex-1 text-body-input text-accent-black text-center sm:text-left">
                         Select which site to clone from the results below
                       </div>
                       
@@ -332,7 +338,7 @@ export default function HomePage() {
                             setUrl('');
                           }, 500);
                         }}
-                        className="button relative rounded-10 px-12 py-8 text-label-medium font-medium flex items-center justify-center gap-6 bg-gray-100 hover:bg-gray-200 text-gray-700 active:scale-[0.995] transition-all"
+                        className="button relative rounded-10 px-12 py-8 text-label-medium font-medium flex items-center justify-center gap-6 bg-gray-100 hover:bg-gray-200 text-gray-700 active:scale-[0.995] transition-all w-full sm:w-auto"
                       >
                         <svg 
                           width="16" 
@@ -377,7 +383,7 @@ export default function HomePage() {
                         </svg>
                       )}
                       <input
-                        className="flex-1 bg-transparent text-body-input text-accent-black placeholder:text-black-alpha-48 focus:outline-none focus:ring-0 focus:border-transparent"
+                        className="w-full sm:flex-1 min-w-0 bg-transparent text-body-input text-accent-black placeholder:text-black-alpha-48 focus:outline-none focus:ring-0 focus:border-transparent"
                         placeholder="Enter URL or search term..."
                         type="text"
                         value={url}
@@ -412,7 +418,7 @@ export default function HomePage() {
                             handleSubmit();
                           }
                         }}
-                        className={isSearching ? 'pointer-events-none' : ''}
+                        className={`w-full sm:w-auto ${isSearching ? 'pointer-events-none' : ''}`}
                       >
                         <HeroInputSubmitButton 
                           dirty={url.length > 0} 
@@ -428,13 +434,13 @@ export default function HomePage() {
                 <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
                   isValidUrl ? (extendBrandStyles ? 'max-h-[400px]' : 'max-h-[300px]') + ' opacity-100' : 'max-h-0 opacity-0'
                 }`}>
-                  <div className="px-[28px] pt-0 pb-[28px]">
+                  <div className="px-16 sm:px-[28px] pt-0 pb-16 sm:pb-[28px]">
                     <div className="border-t border-gray-100 bg-white">
                       {/* Extend Brand Styles Toggle */}
                       <div className={`transition-all duration-300 transform ${
                         isValidUrl ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
                       }`} style={{ transitionDelay: '50ms' }}>
-                        <div className="py-8 grid grid-cols-2 items-center gap-12 group cursor-pointer" onClick={() => setExtendBrandStyles(!extendBrandStyles)}>
+                        <div className="py-8 flex flex-col gap-8 sm:grid sm:grid-cols-2 sm:items-center sm:gap-12 group cursor-pointer" onClick={() => setExtendBrandStyles(!extendBrandStyles)}>
                           <div className="flex select-none">
                             <div className="flex lg-max:flex-col whitespace-nowrap flex-wrap min-w-0 gap-8 lg:justify-between flex-1">
                               <div className="text-xs font-medium text-black-alpha-72 transition-all group-hover:text-accent-black relative">
@@ -442,7 +448,7 @@ export default function HomePage() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex justify-end">
+                          <div className="flex justify-start sm:justify-end">
                             <button
                               className="transition-all relative rounded-full group bg-black-alpha-10"
                               type="button"
@@ -491,7 +497,7 @@ export default function HomePage() {
                         <div className={`mb-2 transition-all duration-300 transform ${
                           isValidUrl ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
                         }`} style={{ transitionDelay: '100ms' }}>
-                          <div className="grid grid-cols-4 gap-2">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                             {styles.map((style, index) => (
                               <button
                                 key={style.id}
@@ -499,7 +505,7 @@ export default function HomePage() {
                                 className={`
                                   ${selectedStyle === style.id
                                     ? 'bg-heat-100 hover:bg-heat-200 flex items-center justify-center button relative text-label-medium button-primary group/button rounded-10 p-8 text-accent-white active:scale-[0.995] border-0'
-                                    : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700 py-3.5 px-4 rounded text-xs font-medium border text-center'
+                                    : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700 py-3 px-2 sm:py-3.5 sm:px-4 rounded text-[11px] sm:text-xs font-medium border text-center'
                                   }
                                   transition-all
                                   ${isValidUrl ? 'opacity-100' : 'opacity-0'}
@@ -522,14 +528,14 @@ export default function HomePage() {
                       )}
 
                       {/* Model Selector Dropdown and Additional Instructions */}
-                      <div className={`flex items-center gap-3 mt-2 pb-4 transition-all duration-300 transform ${
+                      <div className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-2 pb-4 transition-all duration-300 transform ${
                         isValidUrl ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
                       }`} style={{ transitionDelay: '400ms' }}>
                         {/* Model Dropdown */}
                         <select
                           value={selectedModel}
                           onChange={(e) => setSelectedModel(e.target.value)}
-                          className={`px-3 py-2.5 text-xs font-medium text-gray-700 bg-white rounded border border-gray-200 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 ${extendBrandStyles ? 'flex-1' : ''}`}
+                          className={`w-full sm:w-auto px-3 py-2.5 text-xs font-medium text-gray-700 bg-white rounded border border-gray-200 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 ${extendBrandStyles ? 'sm:flex-1' : ''}`}
                         >
                           {models.map((model) => (
                             <option key={model.id} value={model.id}>
@@ -542,7 +548,7 @@ export default function HomePage() {
                         {!extendBrandStyles && (
                           <input
                             type="text"
-                            className="flex-1 px-3 py-2.5 text-xs font-medium text-gray-700 bg-gray-50 rounded border border-gray-200 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 placeholder:text-gray-400"
+                            className="w-full sm:flex-1 min-w-0 px-3 py-2.5 text-xs font-medium text-gray-700 bg-gray-50 rounded border border-gray-200 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 placeholder:text-gray-400"
                             placeholder="Additional instructions (optional)"
                             onChange={(e) => sessionStorage.setItem('additionalInstructions', e.target.value)}
                           />
@@ -554,7 +560,7 @@ export default function HomePage() {
 
                 </div>
 
-                <div className="h-248 top-84 cw-768 pointer-events-none absolute overflow-clip -z-10">
+                <div className="h-248 top-84 cw-768 pointer-events-none absolute overflow-clip -z-10 hidden sm:block">
                   <AsciiExplosion className="-top-200" />
                 </div>
               </div>
@@ -564,24 +570,24 @@ export default function HomePage() {
 
         {/* Full-width oval carousel section */}
         {showSearchTiles && hasSearched && (
-          <section className={`carousel-section relative w-full overflow-hidden mt-32 mb-32 transition-opacity duration-500 ${
+          <section className={`carousel-section relative w-full overflow-hidden mt-16 sm:mt-24 lg:mt-32 mb-16 sm:mb-24 lg:mb-32 transition-opacity duration-500 ${
             isFadingOut ? 'opacity-0' : 'opacity-100'
           }`}>
             <div className="absolute inset-0 bg-gradient-to-b from-gray-50/50 to-white rounded-[50%] transform scale-x-150 -translate-y-24" />
             
             {isSearching ? (
               // Loading state with animated scrolling skeletons
-              <div className="relative h-[250px] overflow-hidden">
+              <div className="carousel-viewport relative h-[200px] sm:h-[240px] md:h-[250px] overflow-hidden">
                 {/* Edge fade overlays */}
-                <div className="absolute left-0 top-0 bottom-0 w-[120px] z-20 pointer-events-none" style={{background: 'linear-gradient(to right, white 0%, white 20%, transparent 100%)'}} />
-                <div className="absolute right-0 top-0 bottom-0 w-[120px] z-20 pointer-events-none" style={{background: 'linear-gradient(to left, white 0%, white 20%, transparent 100%)'}} />
+                <div className="absolute left-0 top-0 bottom-0 w-[48px] sm:w-[80px] md:w-[120px] z-20 pointer-events-none" style={{background: 'linear-gradient(to right, white 0%, white 20%, transparent 100%)'}} />
+                <div className="absolute right-0 top-0 bottom-0 w-[48px] sm:w-[80px] md:w-[120px] z-20 pointer-events-none" style={{background: 'linear-gradient(to left, white 0%, white 20%, transparent 100%)'}} />
                 
                 <div className="carousel-container absolute left-0 flex gap-12 py-4">
                   {/* Duplicate skeleton tiles for continuous scroll */}
                   {[...Array(10), ...Array(10)].map((_, index) => (
                     <div
                       key={`loading-${index}`}
-                      className="flex-shrink-0 w-[400px] h-[240px] rounded-lg overflow-hidden border-2 border-gray-200/30 bg-white relative"
+                      className="flex-shrink-0 w-[260px] xs:w-[300px] sm:w-[340px] md:w-[400px] h-[180px] xs:h-[200px] sm:h-[220px] md:h-[240px] rounded-lg overflow-hidden border-2 border-gray-200/30 bg-white relative"
                     >
                       <div className="absolute inset-0 skeleton-shimmer">
                         <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 skeleton-gradient" />
@@ -609,17 +615,17 @@ export default function HomePage() {
               </div>
             ) : searchResults.length > 0 ? (
               // Actual results
-              <div className="relative h-[250px] overflow-hidden">
+              <div className="carousel-viewport relative h-[200px] sm:h-[240px] md:h-[250px] overflow-hidden">
                 {/* Edge fade overlays */}
-                <div className="absolute left-0 top-0 bottom-0 w-[120px] z-20 pointer-events-none" style={{background: 'linear-gradient(to right, white 0%, white 20%, transparent 100%)'}} />
-                <div className="absolute right-0 top-0 bottom-0 w-[120px] z-20 pointer-events-none" style={{background: 'linear-gradient(to left, white 0%, white 20%, transparent 100%)'}} />
+                <div className="absolute left-0 top-0 bottom-0 w-[48px] sm:w-[80px] md:w-[120px] z-20 pointer-events-none" style={{background: 'linear-gradient(to right, white 0%, white 20%, transparent 100%)'}} />
+                <div className="absolute right-0 top-0 bottom-0 w-[48px] sm:w-[80px] md:w-[120px] z-20 pointer-events-none" style={{background: 'linear-gradient(to left, white 0%, white 20%, transparent 100%)'}} />
                 
                 <div className="carousel-container absolute left-0 flex gap-12 py-4">
                   {/* Duplicate results for infinite scroll */}
                   {[...searchResults, ...searchResults].map((result, index) => (
                     <div
                       key={`${result.url}-${index}`}
-                      className="group flex-shrink-0 w-[400px] h-[240px] rounded-lg overflow-hidden border-2 border-gray-200/50 transition-all duration-300 hover:shadow-2xl bg-white relative"
+                      className="group flex-shrink-0 w-[260px] xs:w-[300px] sm:w-[340px] md:w-[400px] h-[180px] xs:h-[200px] sm:h-[220px] md:h-[240px] rounded-lg overflow-hidden border-2 border-gray-200/50 transition-all duration-300 hover:shadow-2xl bg-white relative"
                       onMouseLeave={() => {
                         if (showInstructionsForIndex === index) {
                           setShowInstructionsForIndex(null);
@@ -631,7 +637,7 @@ export default function HomePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 flex flex-col items-center justify-center p-6">
                         {showInstructionsForIndex === index ? (
                           /* Instructions input view - matching main input style exactly */
-                          <div className="w-full max-w-[380px]">
+                          <div className="w-full max-w-[min(100%,380px)] px-8 sm:px-0">
                             <div className="bg-white rounded-20" style={{
                               boxShadow: "0px 0px 44px 0px rgba(0, 0, 0, 0.02), 0px 88px 56px -20px rgba(0, 0, 0, 0.03), 0px 56px 56px -20px rgba(0, 0, 0, 0.02), 0px 32px 32px -20px rgba(0, 0, 0, 0.03), 0px 16px 24px -12px rgba(0, 0, 0, 0.03), 0px 0px 0px 1px rgba(0, 0, 0, 0.05)"
                             }}>
@@ -734,14 +740,14 @@ export default function HomePage() {
                               <p className="text-[11px] opacity-80">Choose how to clone this site</p>
                             </div>
                             
-                            <div className="flex gap-3 justify-center">
+                            <div className="flex flex-col xs:flex-row gap-3 justify-center w-full px-8 sm:px-0">
                               {/* Instant Clone Button - Orange/Heat style */}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleSubmit(result);
                                 }}
-                                className="bg-orange-500 hover:bg-orange-600 flex items-center justify-center button relative text-label-medium button-primary group/button rounded-10 p-8 gap-2 text-white active:scale-[0.995]"
+                                className="bg-orange-500 hover:bg-orange-600 flex items-center justify-center button relative text-label-medium button-primary group/button rounded-10 p-8 gap-2 text-white active:scale-[0.995] w-full xs:w-auto"
                               >
                                 <div className="button-background absolute inset-0 rounded-10 pointer-events-none" />
                                 <svg 
@@ -764,7 +770,7 @@ export default function HomePage() {
                                   setShowInstructionsForIndex(index);
                                   setAdditionalInstructions('');
                                 }}
-                                className="bg-gray-100 hover:bg-gray-200 flex items-center justify-center button relative text-label-medium rounded-10 p-8 gap-2 text-gray-700 active:scale-[0.995]"
+                                className="bg-gray-100 hover:bg-gray-200 flex items-center justify-center button relative text-label-medium rounded-10 p-8 gap-2 text-gray-700 active:scale-[0.995] w-full xs:w-auto"
                               >
                                 <svg 
                                   width="20" 
@@ -823,7 +829,7 @@ export default function HomePage() {
               </div>
             ) : (
               // No results state
-              <div className="relative h-[250px] flex items-center justify-center">
+              <div className="carousel-viewport relative h-[200px] sm:h-[250px] flex items-center justify-center px-16">
                 <div className="text-center">
                   <div className="mb-4">
                     <svg className="w-16 h-16 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
